@@ -54,27 +54,27 @@ class Comand
         self::$count++;
         $this->array = preg_split('/\s+/', $string);
         $this->array[0] = strtoupper($this->array[0]);
-        //print_r($this->array); TODO
+        //print_r($this->array[0]);
     }
 
     private function checkVar($string)
     {
-        return preg_match("/(LF|GF|TF)@([a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*)/", $string);
+        return preg_match("/^(LF|GF|TF)@([a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*)$/", $string);
     }
 
     private function checkConst($string)
     {
-        return preg_match("/(int@-{0,1}[0-9]*)|(nil@nil)|(bool@(true|false)|(string@[a-zA-Z_\-$&%*!?0-9]*[\\00-30-2]*))/", $string);
+        return preg_match("/^(int@[+-]{0,1}[0-9]+)$|^(nil@nil)$|^(bool@(true|false))$|^(?:(string)@((?:[^\s#\\\\]|(?:\\\\\d{3}))*))$/", $string);
     }
 
     private function checkLabel($string)
     {
-        return preg_match("/[a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*/", $string);
+        return preg_match("/^([a-zA-Z_\-$&%*!?][a-zA-Z_\-$&%*!?0-9]*)$/", $string);
     }
 
     private function checkType($string)
     {
-        return preg_match("/(string)|(int)|(bool)|(nil)/", $string);
+        return strcmp($string,"int") == 0 || strcmp($string,"nil") == 0 || strcmp($string,"bool") == 0 || strcmp($string,"string") == 0;
     }
 
     function checkCorrectness()
@@ -103,8 +103,8 @@ class Comand
                             $this->generateVariable($instruction, 1);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -115,23 +115,17 @@ class Comand
                 case "MOVE":
                 case "INT2CHAR":
                 case "STRLEN":
+                case "NOT":
                 case "TYPE":
                     if (count($this->array) == 3) {
-                        if ($this->checkVar($this->array[1])) {
+                        if ($this->checkVar($this->array[1]) && ($this->checkVar($this->array[2]) || $this->checkConst($this->array[2]))) {
                             $instruction = $this->generateInstruction();
                             $this->generateVariable($instruction, 1);
                             $this->generateSymbol($instruction, 2);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
-                        }
-
-                        if ($this->checkVar($this->array[2]) || $this->checkConst($this->array[2])) {
-                            echo "je to good";
-                        } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -144,8 +138,13 @@ class Comand
                 case "POPFRAME":
                 case "RETURN":
                 case "BREAK":
-                    $instruction = $this->generateInstruction();
-                    $this->appendToProgram($instruction);
+                    if(count($this->array) == 1){
+                        $instruction = $this->generateInstruction();
+                        $this->appendToProgram($instruction);
+                    }else{
+                        fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                        exit(23);
+                    }
                     break;
                 //LABEL
                 case "CALL":
@@ -157,8 +156,8 @@ class Comand
                             $this->generateLabel($instruction, 1);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -166,18 +165,19 @@ class Comand
                     }
                     break;
                 //SYMBOL
-                case "PUSH":
+                case "PUSHS":
                 case "WRITE":
                 case "EXIT":
                 case "DPRINT":
                     if (count($this->array) == 2) {
                         if ($this->checkVar($this->array[1]) || $this->checkConst($this->array[1])) {
+
                             $instruction = $this->generateInstruction();
                             $this->generateSymbol($instruction, 1);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -194,11 +194,10 @@ class Comand
                 case "EQ":
                 case "AND":
                 case "OR":
-                case "NOT":
                 case "CONCAT":
                 case "GETCHAR":
                 case "SETCHAR":
-                case "STRING2INT":
+                case "STRI2INT":
                     if (count($this->array) == 4) {
                         if ($this->checkVar($this->array[1]) && ($this->checkVar($this->array[2]) || $this->checkConst($this->array[2])) && ($this->checkVar($this->array[3]) || $this->checkConst($this->array[3]))) {
                             $instruction = $this->generateInstruction();
@@ -207,8 +206,8 @@ class Comand
                             $this->generateSymbol($instruction, 3);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -224,8 +223,8 @@ class Comand
                             $this->generateType($instruction, 2);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -243,8 +242,8 @@ class Comand
                             $this->generateSymbol($instruction, 3);
                             $this->appendToProgram($instruction);
                         } else {
-                            fwrite(STDERR, "Neznámý nebo chybný operační kód ve zdrojovém kódu zapsaném v IPPcode22.\n");
-                            exit(22);
+                            fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
+                            exit(23);
                         }
                     } else {
                         fwrite(STDERR, "Jiná lexikální nebo syntaktická chyba zdrojového kódu zapsaného v IPPcode22.\n");
@@ -279,7 +278,7 @@ class Comand
     private function generateVariable($instruction, $order)
     {
         $orderedArg = "arg" . $order;
-        $arg = self::$dom->createElement($orderedArg, $this->array[1]);
+        $arg = self::$dom->createElement($orderedArg, htmlentities($this->array[$order],ENT_XML1));
         $argAttribute = self::$dom->createAttribute('type');
         $argAttribute->value = 'var';
         $arg->appendChild($argAttribute);
@@ -291,10 +290,10 @@ class Comand
         $orderedArg = "arg" . $order;
         $argAttribute = self::$dom->createAttribute('type');
         if (str_contains($this->array[$order], "GF") || str_contains($this->array[$order], "LF") || str_contains($this->array[$order], "TF")) { // nastaveni zda mame konstatntu nebo promnenou
-            $arg = self::$dom->createElement($orderedArg, $this->array[$order]);
+            $arg = self::$dom->createElement($orderedArg, htmlentities($this->array[$order],ENT_XML1));
             $argAttribute->value = 'var';
         } else {
-            $arg = self::$dom->createElement($orderedArg, substr($this->array[$order], strpos($this->array[$order], "@") + 1));
+            $arg = self::$dom->createElement($orderedArg, htmlentities(substr($this->array[$order], strpos($this->array[$order], "@") + 1),ENT_XML1));
             $argAttribute->value = substr($this->array[$order], 0, strpos($this->array[$order], "@"));
         }
         $arg->appendChild($argAttribute);
@@ -304,7 +303,7 @@ class Comand
     private function generateLabel($instruction, $order)
     {
         $orderedArg = "arg" . $order;
-        $arg = self::$dom->createElement($orderedArg, $this->array[$order]);
+        $arg = self::$dom->createElement($orderedArg, htmlentities($this->array[$order],ENT_XML1));
         $argAttribute = self::$dom->createAttribute('type');
         $argAttribute->value = 'label';
         $arg->appendChild($argAttribute);
@@ -314,7 +313,7 @@ class Comand
     private function generateType($instruction, $order)
     {
         $orderedArg = "arg" . $order;
-        $arg = self::$dom->createElement($orderedArg, $this->array[$order]);
+        $arg = self::$dom->createElement($orderedArg, htmlentities($this->array[$order],ENT_XML1));
         $argAttribute = self::$dom->createAttribute('type');
         $argAttribute->value = 'type';
         $arg->appendChild($argAttribute);
