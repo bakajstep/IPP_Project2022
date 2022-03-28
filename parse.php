@@ -22,7 +22,7 @@ if ($argc == 1) { //zpracovani kodu
         }
         $line = trim($line); //zbaveni se bilych znaku na zacatku a nokonci retezce
         if (!empty($line)) { // kontrola zda nedostavame prazdny retezec
-            $command = new Comand($line);
+            $command = new Command($line);
             $command->checkCorrectness();
         }
     }
@@ -41,7 +41,7 @@ if ($argc == 1) { //zpracovani kodu
 exit(0);
 
 
-class Comand
+class Command
 {
 
     static int $count = -1;
@@ -54,7 +54,6 @@ class Comand
         self::$count++;
         $this->array = preg_split('/\s+/', $string);
         $this->array[0] = strtoupper($this->array[0]);
-        //print_r($this->array[0]);
     }
 
     private function checkVar($string)
@@ -74,7 +73,7 @@ class Comand
 
     private function checkType($string)
     {
-        return strcmp($string,"int") == 0 || strcmp($string,"nil") == 0 || strcmp($string,"bool") == 0 || strcmp($string,"string") == 0;
+        return strcmp($string,"int") == 0 || strcmp($string,"bool") == 0 || strcmp($string,"string") == 0;
     }
 
     function checkCorrectness()
