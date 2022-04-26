@@ -1,5 +1,6 @@
 #IDEA file
 .idea/
+venv/
 
 #Dokumentace
 readme1.md
